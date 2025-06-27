@@ -5,8 +5,8 @@ on:
     branches: [main]
 
 permissions:
-  pull-requests: write    # ✅ Needed for CML to comment on the PR
-  contents: read          # ✅ Needed for actions/checkout
+  pull-requests: write
+  contents: read
 
 jobs:
   test:
@@ -39,8 +39,8 @@ jobs:
           pytest --tb=short --disable-warnings > report.md || true
 
       - name: Comment test results with CML
-        uses: iterative/setup-cml@v2  # ✅ Correct GitHub Action
+        uses: iterative/setup-cml@v2
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cml comment create report.md  # ✅ Fixed indentation and syntax
+          cml comment create report.md
