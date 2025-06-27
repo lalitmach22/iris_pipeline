@@ -17,7 +17,10 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Create and activate virtual environment
+    - name: Set up CML
+      uses: iterative/setup-cml@v1
+
+    - name: Set up virtual environment and install dependencies
       run: |
         python -m venv .venv
         source .venv/bin/activate
@@ -34,9 +37,8 @@ jobs:
         source .venv/bin/activate
         pytest --tb=short --disable-warnings > report.md || true
 
-    - name: Comment test results with CML
-      uses: iterative/cml@v1
+    - name: Comment test report using CML
       env:
         REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        markdown: report.md
+      run: |
+        cml comment < report.md
