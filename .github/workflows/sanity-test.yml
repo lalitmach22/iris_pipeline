@@ -35,7 +35,7 @@ jobs:
         pytest --tb=short --disable-warnings > report.md || true
 
     - name: Comment test results with CML
-      uses: iterative/cml@v1
+      uses: iterative/cml@v0.10.0
       env:
         REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
