@@ -1,0 +1,41 @@
+name: Model Sanity Check
+
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m venv .venv
+        source .venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run training
+      run: |
+        source .venv/bin/activate
+        python src/train.py
+
+    - name: Run tests
+      run: |
+        source .venv/bin/activate
+        pytest --tb=short --disable-warnings > result.txt || true
+
+    - name: Post test report using CML
+      env:
+        REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        pip install -q cml
+        cat result.txt
+        cml comment < result.txt
