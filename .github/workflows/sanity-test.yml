@@ -1,6 +1,8 @@
 name: Model Sanity Check
 
-on: [pull_request]
+on:
+  pull_request:
+    branches: [main]
 
 jobs:
   test:
@@ -11,11 +13,11 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.12'
+        python-version: '3.10'
 
-    - name: Install dependencies
+    - name: Create and activate virtual environment
       run: |
         python -m venv .venv
         source .venv/bin/activate
@@ -27,15 +29,15 @@ jobs:
         source .venv/bin/activate
         python src/train.py
 
-    - name: Run tests
+    - name: Run tests and save report
       run: |
         source .venv/bin/activate
-        pytest --tb=short --disable-warnings > result.txt || true
+        pytest --tb=short --disable-warnings > report.md || true
 
-    - name: Post test report using CML
+    - name: Comment test results with CML
+      uses: iterative/cml@v1
       env:
         REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        pip install -q cml
-        cat result.txt
-        cml comment < result.txt
+      with:
+        markdown: report.md
+
