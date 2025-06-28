@@ -28,9 +28,6 @@ def train_models():
     rf_model.fit(X_train, y_train)
     joblib.dump(rf_model, "model_rf.joblib")
 
-    
-
-
     # Train Keras model
     keras_model = Sequential([
         tf.keras.Input(shape=(X.shape[1],)),  # Better than using input_shape in Dense
