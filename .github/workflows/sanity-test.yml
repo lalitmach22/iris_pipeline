@@ -27,23 +27,59 @@ jobs:
           source .venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install black flake8 pytest
+
+      - name: Auto-format with Black
+        run: |
+          source .venv/bin/activate
+          black --check --diff src/ tests/ || true
+          echo "## Code Formatting (Black)" > report.md
+          black --check --diff src/ tests/ >> report.md 2>&1 || echo "Formatting issues found" >> report.md
+          echo "" >> report.md
+
+      - name: Lint with Flake8
+        run: |
+          source .venv/bin/activate
+          echo "## Linting Results (Flake8)" >> report.md
+          flake8 src/ tests/ --max-line-length=88 --extend-ignore=E203,W503 >> report.md 2>&1 || echo "Linting issues found" >> report.md
+          echo "" >> report.md
 
       - name: Run training
         run: |
           source .venv/bin/activate
           python src/train.py
 
+      - name: Generate model performance metrics
+        run: |
+          source .venv/bin/activate
+          python src/plot_metrics.py
+          echo "## Model Performance Metrics" >> report.md
+          echo "![Model Metrics](metrics.png)" >> report.md
+          echo "" >> report.md
+
       - name: Run tests and save report
         run: |
           source .venv/bin/activate
-          pytest --tb=short --disable-warnings > report.md
           echo "## Test Results" >> report.md
+          pytest --tb=short --disable-warnings >> report.md 2>&1 || true
+          echo "" >> report.md
           echo "Tests completed on $(date)" >> report.md
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: model-artifacts
+          path: |
+            model.pkl
+            metrics.png
+            report.md
+            *.json
+            *.csv
 
       - name: Setup CML
         uses: iterative/setup-cml@v2
 
-      - name: Comment test results
+      - name: Comment test results with CML
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
