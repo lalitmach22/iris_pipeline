@@ -10,8 +10,8 @@ __pycache__/
 *.keras
 
 # CSV/data files
-data/
-*.csv
+#data/
+#*.csv
 
 # Jupyter checkpoints
 .ipynb_checkpoints/
