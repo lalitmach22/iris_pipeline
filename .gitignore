@@ -1,0 +1,20 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Model files
+*.joblib
+*.keras
+
+# CSV/data files
+data/
+*.csv
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Test output
+result.txt
