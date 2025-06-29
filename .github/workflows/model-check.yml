@@ -5,8 +5,8 @@ on:
     branches: [main]
 
 permissions:
-  pull-requests: write    # Needed for CML to comment on the PR
-  contents: read          # Needed for actions/checkout
+  pull-requests: write
+  contents: read
 
 jobs:
   test:
@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -27,7 +27,33 @@ jobs:
           source .venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install black flake8 pytest
+          pip install dvc[gcs] black flake8 pytest
+
+      - name: Set up GCP credentials and authenticate
+        env:
+          GCP_B64: ${{ secrets.GCP_CREDENTIALS_B64 }}
+        run: |
+          set -e
+          echo "$GCP_B64" | base64 -d > gcp-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp-key.json" >> $GITHUB_ENV
+          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp-key.json
+          
+          echo "✓ Decoded service account key"
+          python3 -m json.tool gcp-key.json > /dev/null && echo "✓ Valid JSON"
+          
+          echo "Installing Google Cloud CLI..."
+          sudo apt-get update && sudo apt-get install -y google-cloud-cli
+          
+          echo "Authenticating with GCP..."
+          gcloud auth activate-service-account --key-file=gcp-key.json
+          gcloud config set project mlopsweek1
+          gsutil ls gs://week4_mlops_bucket/ || echo "Warning: Bucket check failed"
+
+      - name: DVC Pull from GCS
+        run: |
+          source .venv/bin/activate
+          dvc remote list
+          dvc pull -v
 
       - name: Auto-format with Black
         run: |
@@ -54,15 +80,14 @@ jobs:
           source .venv/bin/activate
           python src/plot_metrics.py
           echo "## Model Performance Metrics" >> report.md
-          echo "![Model Metrics](metrics.png)" >> report.md
+          echo "![Model Metrics](./metrics.png)" >> report.md
           echo "" >> report.md
 
       - name: Run tests and save report
         run: |
           source .venv/bin/activate
           echo "## Test Results" >> report.md
-          pytest --tb=short --disable-warnings >> report.md 2>&1 || true
-          echo "" >> report.md
+          pytest --tb=short --disable-warnings >> report.md 2>&1 || echo "Tests failed" >> report.md
           echo "Tests completed on $(date)" >> report.md
 
       - name: Upload artifacts

@@ -2,6 +2,9 @@ scikit-learn
 joblib
 pytest
 numpy
-tensorflow
 pandas
 matplotlib
+dvc
+dvc[gs]
+black
+flake8
