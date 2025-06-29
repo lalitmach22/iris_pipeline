@@ -32,11 +32,9 @@ jobs:
       - name: Set up GCP credentials
         run: |
           echo "${{ secrets.GCP_CREDENTIALS_JSON }}" > gcp-key.json
-          export GOOGLE_APPLICATION_CREDENTIALS="gcp-key.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp-key.json" >> $GITHUB_ENV
 
       - name: Pull data with DVC
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: gcp-key.json
         run: |
           source .venv/bin/activate
           dvc pull
