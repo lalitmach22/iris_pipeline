@@ -68,3 +68,19 @@ report.md
 metrics.png
 *.json
 *.csv
+
+
+
+
+
+
+
+
+
+
+# GCP credentials and service account keys
+gcp-key.json
+*.json
+service-account-*.json
+*credentials*.json
+mlopsweek1-*.json

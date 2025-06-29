@@ -5,8 +5,8 @@ on:
     branches: [main]
 
 permissions:
-  pull-requests: write    # Needed for CML to comment on the PR
-  contents: read          # Needed for actions/checkout
+  pull-requests: write
+  contents: read
 
 jobs:
   test:
@@ -27,61 +27,32 @@ jobs:
           source .venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install black flake8 pytest
+          pip install dvc[gcs] black flake8 pytest
 
-      - name: Set up GCP credentials, authenticate, and pull data
+      - name: Set up GCP credentials and authenticate
+        env:
+          GCP_B64: ${{ secrets.GCP_CREDENTIALS_B64 }}
         run: |
-          echo "=== Setting up GCP credentials ==="
-          echo "${{ secrets.GCP_CREDENTIALS_JSON }}" > gcp-key.json
-          echo "✓ Created gcp-key.json file"
-          ls -la gcp-key.json
-          echo "File size: $(wc -c < gcp-key.json) bytes"
-          
-          echo "=== DEBUG: Checking file content ==="
-          echo "First 200 characters of gcp-key.json:"
-          head -c 200 gcp-key.json
-          echo ""
-          echo "=== DEBUG: Checking for hidden characters ==="
-          xxd -l 100 gcp-key.json
-          echo ""
-          echo "=== DEBUG: Validating JSON syntax ==="
-          python3 -m json.tool gcp-key.json > /dev/null && echo "JSON is valid" || echo "JSON is INVALID"
-          
-          echo "=== Setting environment variable ==="
+          set -e
+          echo "$GCP_B64" | base64 -d > gcp-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp-key.json" >> $GITHUB_ENV
-          export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/gcp-key.json"
-          echo "✓ Set GOOGLE_APPLICATION_CREDENTIALS to $(pwd)/gcp-key.json"
+          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp-key.json
           
-          echo "=== Installing Google Cloud SDK ==="
-          curl https://sdk.cloud.google.com | bash
-          export PATH="$HOME/google-cloud-sdk/bin:$PATH"
-          echo "✓ Google Cloud SDK installed"
+          echo "✓ Decoded service account key"
+          python3 -m json.tool gcp-key.json > /dev/null && echo "✓ Valid JSON"
           
-          echo "=== Authenticating service account ==="
+          echo "Installing Google Cloud CLI..."
+          sudo apt-get update && sudo apt-get install -y google-cloud-cli
+          
+          echo "Authenticating with GCP..."
           gcloud auth activate-service-account --key-file=gcp-key.json
-          echo "✓ Service account activated"
-          
-          echo "=== Setting project ==="
           gcloud config set project mlopsweek1
-          echo "✓ Project set to mlopsweek1"
-          
-          echo "=== Verifying authentication ==="
-          gcloud auth list
-          gcloud config list
-          
-          echo "=== Testing Google Cloud Storage access ==="
-          gsutil ls gs://week4_mlops_bucket/ || echo "Failed to list bucket contents"
-          
-          echo "=== Activating virtual environment and running DVC pull ==="
+          gsutil ls gs://week4_mlops_bucket/ || echo "Warning: Bucket check failed"
+
+      - name: DVC Pull from GCS
+        run: |
           source .venv/bin/activate
-          echo "Current working directory: $(pwd)"
-          echo "GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
-          
-          echo "=== DVC configuration ==="
-          dvc config core.remote
           dvc remote list
-          
-          echo "=== Running DVC pull ==="
           dvc pull -v
 
       - name: Auto-format with Black
@@ -109,15 +80,14 @@ jobs:
           source .venv/bin/activate
           python src/plot_metrics.py
           echo "## Model Performance Metrics" >> report.md
-          echo "![Model Metrics](metrics.png)" >> report.md
+          echo "![Model Metrics](./metrics.png)" >> report.md
           echo "" >> report.md
 
       - name: Run tests and save report
         run: |
           source .venv/bin/activate
           echo "## Test Results" >> report.md
-          pytest --tb=short --disable-warnings >> report.md 2>&1 || true
-          echo "" >> report.md
+          pytest --tb=short --disable-warnings >> report.md 2>&1 || echo "Tests failed" >> report.md
           echo "Tests completed on $(date)" >> report.md
 
       - name: Upload artifacts
