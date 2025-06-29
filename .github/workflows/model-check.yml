@@ -75,20 +75,15 @@ jobs:
           source .venv/bin/activate
           python src/train.py
 
+      - name: Run evaluation
+        run: |
+          source .venv/bin/activate
+          python src/evaluate.py
 
-     - name: Run evaluation
-       run:  |
-         source .venv/bin/activate
-         python src/evaluate.py
-
-
-     - name: Generate model performance metrics
+      - name: Generate model performance metrics
         run: |
           source .venv/bin/activate
           python src/plot_metrics.py
-
-
-
           echo "## Model Performance Metrics" >> report.md
           echo "![Model Metrics](./metrics.png)" >> report.md
           echo "" >> report.md
