@@ -48,9 +48,8 @@ jobs:
           gcloud auth activate-service-account --key-file=gcp-key.json
           gcloud config set project mlopsweek1
           gsutil ls gs://week4_mlops_bucket/ || echo "Warning: Bucket check failed"
-
-      - name: DVC Pull from GCS
-        run: |
+          
+          echo "Running DVC pull in same session..."
           source .venv/bin/activate
           dvc remote list
           dvc pull -v
