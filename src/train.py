@@ -14,8 +14,6 @@ def train_models():
     le = LabelEncoder()
     y_encoded = le.fit_transform(y)
 
-    print("Data Encoded")
-
     # Save label encoder for future use
     joblib.dump(le, "label_encoder.joblib")
 
