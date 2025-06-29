@@ -84,3 +84,5 @@ gcp-key.json
 service-account-*.json
 *credentials*.json
 mlopsweek1-*.json
+data/iris.csv
+data/iris.csv
