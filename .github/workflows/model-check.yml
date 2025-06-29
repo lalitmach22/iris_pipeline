@@ -29,15 +29,61 @@ jobs:
           pip install -r requirements.txt
           pip install black flake8 pytest
 
-      - name: Set up GCP credentials
+      - name: Set up GCP credentials and authenticate
         run: |
+          echo "=== Setting up GCP credentials ==="
           echo "${{ secrets.GCP_CREDENTIALS_JSON }}" > gcp-key.json
+          echo "✓ Created gcp-key.json file"
+          ls -la gcp-key.json
+          echo "File size: $(wc -c < gcp-key.json) bytes"
+          
+          echo "=== Setting environment variable ==="
           echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp-key.json" >> $GITHUB_ENV
+          echo "✓ Set GOOGLE_APPLICATION_CREDENTIALS to $(pwd)/gcp-key.json"
+          
+          echo "=== Installing Google Cloud SDK ==="
+          curl https://sdk.cloud.google.com | bash
+          exec -l $SHELL
+          source $HOME/google-cloud-sdk/path.bash.inc
+          echo "✓ Google Cloud SDK installed"
+          
+          echo "=== Authenticating service account ==="
+          gcloud auth activate-service-account --key-file=gcp-key.json
+          echo "✓ Service account activated"
+          
+          echo "=== Setting project ==="
+          gcloud config set project mlopsweek1
+          echo "✓ Project set to mlopsweek1"
+          
+          echo "=== Verifying authentication ==="
+          gcloud auth list
+          gcloud config list
 
       - name: Pull data with DVC
         run: |
+          echo "=== DVC Pull Debug Information ==="
           source .venv/bin/activate
-          dvc pull
+          source $HOME/google-cloud-sdk/path.bash.inc
+          
+          echo "Current working directory: $(pwd)"
+          echo "GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
+          echo "Checking gcp-key.json file:"
+          ls -la gcp-key.json
+          echo "File permissions: $(stat -c %a gcp-key.json)"
+          
+          echo "=== Current gcloud configuration ==="
+          gcloud auth list
+          gcloud config list
+          
+          echo "=== DVC configuration ==="
+          dvc config core.remote
+          dvc remote list
+          
+          echo "=== Testing Google Cloud Storage access ==="
+          gsutil ls gs://week4_mlops_bucket/ || echo "Failed to list bucket contents"
+          
+          echo "=== Running DVC pull ==="
+          dvc pull -v
 
       - name: Auto-format with Black
         run: |
