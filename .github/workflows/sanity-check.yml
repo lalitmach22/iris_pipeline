@@ -1,0 +1,94 @@
+name: Model Sanity Check
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: write    # Needed for CML to comment on the PR
+  contents: read          # Needed for actions/checkout
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black flake8 pytest
+
+      - name: Pull data with DVC
+        run: |
+          source .venv/bin/activate
+          dvc pull
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ~/.config/gcloud/application_default_credentials.json
+
+      - name: Auto-format with Black
+        run: |
+          source .venv/bin/activate
+          black --check --diff src/ tests/ || true
+          echo "## Code Formatting (Black)" > report.md
+          black --check --diff src/ tests/ >> report.md 2>&1 || echo "Formatting issues found" >> report.md
+          echo "" >> report.md
+
+      - name: Lint with Flake8
+        run: |
+          source .venv/bin/activate
+          echo "## Linting Results (Flake8)" >> report.md
+          flake8 src/ tests/ --max-line-length=88 --extend-ignore=E203,W503 >> report.md 2>&1 || echo "Linting issues found" >> report.md
+          echo "" >> report.md
+
+      - name: Run training
+        run: |
+          source .venv/bin/activate
+          python src/train.py
+
+      - name: Generate model performance metrics
+        run: |
+          source .venv/bin/activate
+          python src/plot_metrics.py
+          echo "## Model Performance Metrics" >> report.md
+          echo "![Model Metrics](metrics.png)" >> report.md
+          echo "" >> report.md
+
+      - name: Run tests and save report
+        run: |
+          source .venv/bin/activate
+          echo "## Test Results" >> report.md
+          pytest --tb=short --disable-warnings >> report.md 2>&1 || true
+          echo "" >> report.md
+          echo "Tests completed on $(date)" >> report.md
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-artifacts
+          path: |
+            model.pkl
+            metrics.png
+            report.md
+            *.json
+            *.csv
+
+      - name: Setup CML
+        uses: iterative/setup-cml@v2
+
+      - name: Comment test results with CML
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          source .venv/bin/activate
+          cml comment create report.md
