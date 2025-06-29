@@ -47,11 +47,27 @@ jobs:
           echo "Authenticating with GCP..."
           gcloud auth activate-service-account --key-file=gcp-key.json
           gcloud config set project mlopsweek1
+          
+          # Set up application default credentials (like your local setup)
+          echo "Setting up application default credentials..."
+          gcloud auth application-default login --quiet --key-file=gcp-key.json || true
+          
+          # Test GCS access
+          echo "Testing GCS access:"
           gsutil ls gs://week4_mlops_bucket/ || echo "Warning: Bucket check failed"
           
           echo "Running DVC pull in same session..."
           source .venv/bin/activate
-          dvc remote list
+          
+          # Ensure environment variables are set for this session
+          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp-key.json
+          export GOOGLE_CLOUD_PROJECT=mlopsweek1
+          export GCLOUD_PROJECT=mlopsweek1
+          
+          echo "DVC remote configuration:"
+          dvc remote list -v
+          
+          echo "Running DVC pull:"
           dvc pull -v
 
       - name: Auto-format with Black
