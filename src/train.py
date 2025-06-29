@@ -3,9 +3,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import joblib
-import tensorflow as tf
-from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Dense
 
 def train_models():
     # Load and prepare data
@@ -17,8 +14,8 @@ def train_models():
     le = LabelEncoder()
     y_encoded = le.fit_transform(y)
 
-    print("ENCODED")
-    # Save label encoder for future use
+  # Save label encoder for future use
+
     joblib.dump(le, "label_encoder.joblib")
 
     # Split data
@@ -29,16 +26,7 @@ def train_models():
     rf_model.fit(X_train, y_train)
     joblib.dump(rf_model, "model_rf.joblib")
 
-    # Train Keras model
-    keras_model = Sequential([
-        tf.keras.Input(shape=(X.shape[1],)),  # Better than using input_shape in Dense
-        Dense(16, activation='relu'),
-        Dense(12, activation='relu'),
-        Dense(3, activation='softmax')  # 3 classes
-    ])
-    keras_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-    keras_model.fit(X_train, y_train, epochs=50, verbose=0)
-    keras_model.save("model.keras")
+ 
 
 if __name__ == "__main__":
     train_models()
