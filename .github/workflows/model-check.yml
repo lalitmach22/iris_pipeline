@@ -37,6 +37,16 @@ jobs:
           ls -la gcp-key.json
           echo "File size: $(wc -c < gcp-key.json) bytes"
           
+          echo "=== DEBUG: Checking file content ==="
+          echo "First 200 characters of gcp-key.json:"
+          head -c 200 gcp-key.json
+          echo ""
+          echo "=== DEBUG: Checking for hidden characters ==="
+          xxd -l 100 gcp-key.json
+          echo ""
+          echo "=== DEBUG: Validating JSON syntax ==="
+          python3 -m json.tool gcp-key.json > /dev/null && echo "JSON is valid" || echo "JSON is INVALID"
+          
           echo "=== Setting environment variable ==="
           echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp-key.json" >> $GITHUB_ENV
           export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/gcp-key.json"
