@@ -27,7 +27,7 @@ jobs:
           source .venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt          
-
+          pip install dvc
       - name: Set up GCP credentials and authenticate
         env:
           GCP_B64: ${{ secrets.GCP_CREDENTIALS_B64 }}
