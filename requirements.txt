@@ -8,3 +8,6 @@ dvc
 dvc[gs]
 black
 flake8
+mlflow
+google-cloud-aiplatform
+google-cloud-storage
