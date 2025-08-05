@@ -9,21 +9,35 @@ from mlflow.models import infer_signature
 from google.cloud import aiplatform, storage
 
 print("Demo for week8")
+
 # --- Configuration ---
-# In a real pipeline, these would come from environment variables or a config file
-PROJECT_ID = "mlopsweek1"  
+PROJECT_ID = "mlopsweek1"
 LOCATION = "us-central1"
-BUCKET_URI = "gs://week4_mlops_bucket" # Replace with your bucket URI
+BUCKET_URI = "gs://week4_mlops_bucket"  # Replace with your bucket URI
 
 MODEL_ARTIFACT_DIR = "my-models/iris-classifier-week-8"
 REPOSITORY = "iris-classifier-repo"
 IMAGE = "iris-classifier-img"
 MODEL_DISPLAY_NAME = "iris-classifier"
 
-# --- Initialization ---
+# --- MLflow Tracking URI based on environment ---
+if os.getenv('CI'):
+    # In CI, save MLflow data locally
+    mlflow_tracking_uri = "file:./mlruns"
+    print(f"CI environment detected. Using local MLflow tracking URI: {mlflow_tracking_uri}")
+    REGISTERED_MODEL_NAME = ""
+else:
+    # Replace with the actual external IP of your GCP instance
+    EXTERNAL_IP = "http://35.202.173.100/:8100"  # Replace this dynamically if needed
+    mlflow_tracking_uri = EXTERNAL_IP
+    print(f"Local environment detected. Using remote MLflow tracking URI: {mlflow_tracking_uri}")
+    REGISTERED_MODEL_NAME = "IRIS-classifier-decisiontrees"
+
+# --- Initialize clients and MLflow ---
 aiplatform.init(project=PROJECT_ID, location=LOCATION, staging_bucket=BUCKET_URI)
-mlflow.set_tracking_uri("http://35.202.173.100:8100")
+mlflow.set_tracking_uri(mlflow_tracking_uri)
 mlflow.set_experiment("Iris_Classification_Experiment")
+
 
 # --- Helper Function for GCS Upload ---
 def upload_to_gcs(bucket_name, source_file_path, destination_blob_name):
