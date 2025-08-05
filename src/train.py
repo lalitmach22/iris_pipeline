@@ -8,6 +8,7 @@ import mlflow
 from mlflow.models import infer_signature
 from google.cloud import aiplatform, storage
 
+print("Demo for week8")
 # --- Configuration ---
 # In a real pipeline, these would come from environment variables or a config file
 PROJECT_ID = "mlopsweek1"  
@@ -21,7 +22,7 @@ MODEL_DISPLAY_NAME = "iris-classifier"
 
 # --- Initialization ---
 aiplatform.init(project=PROJECT_ID, location=LOCATION, staging_bucket=BUCKET_URI)
-mlflow.set_tracking_uri("http://34.133.117.81:8100")
+mlflow.set_tracking_uri("http://35.202.173.100:8100")
 mlflow.set_experiment("Iris_Classification_Experiment")
 
 # --- Helper Function for GCS Upload ---
