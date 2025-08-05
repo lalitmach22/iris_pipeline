@@ -9,6 +9,7 @@ import mlflow
 from mlflow.models import infer_signature
 from google.cloud import aiplatform, storage
 
+print("DEMO")
 # --- Configuration ---
 # In a real pipeline, these would come from environment variables or a config file
 PROJECT_ID = "mlopsweek1"  # Replace with your Project ID
