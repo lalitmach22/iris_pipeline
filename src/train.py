@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import metrics
 import joblib
@@ -8,12 +9,11 @@ import mlflow
 from mlflow.models import infer_signature
 from google.cloud import aiplatform, storage
 
-print("Demo for week8")
-
 # --- Configuration ---
-PROJECT_ID = "mlopsweek1"
+# In a real pipeline, these would come from environment variables or a config file
+PROJECT_ID = "mlopsweek1"  # Replace with your Project ID
 LOCATION = "us-central1"
-BUCKET_URI = "gs://week4_mlops_bucket"  # Replace with your bucket URI
+BUCKET_URI = "gs://mlops-course-mlopsweek1-unique" # Replace with your bucket URI
 
 MODEL_ARTIFACT_DIR = "my-models/iris-classifier-week-8"
 REPOSITORY = "iris-classifier-repo"
@@ -28,7 +28,7 @@ if os.getenv('CI'):
     REGISTERED_MODEL_NAME = ""
 else:
     # Replace with the actual external IP of your GCP instance
-    EXTERNAL_IP = "http://35.202.173.100/:8100"  # Replace this dynamically if needed
+    EXTERNAL_IP = "http://35.202.173.100:8100"  # Replace this dynamically if needed
     mlflow_tracking_uri = EXTERNAL_IP
     print(f"Local environment detected. Using remote MLflow tracking URI: {mlflow_tracking_uri}")
     REGISTERED_MODEL_NAME = "IRIS-classifier-decisiontrees"
@@ -37,7 +37,6 @@ else:
 aiplatform.init(project=PROJECT_ID, location=LOCATION, staging_bucket=BUCKET_URI)
 mlflow.set_tracking_uri(mlflow_tracking_uri)
 mlflow.set_experiment("Iris_Classification_Experiment")
-
 
 # --- Helper Function for GCS Upload ---
 def upload_to_gcs(bucket_name, source_file_path, destination_blob_name):
@@ -59,7 +58,13 @@ y_train = train.species
 X_test = test[['sepal_length','sepal_width','petal_length','petal_width']]
 y_test = test.species
 
-# 3. Train Model
+### FIXED ###: Create, fit, and save the LabelEncoder
+# 3. Fit Label Encoder
+print("Fitting LabelEncoder...")
+le = LabelEncoder()
+le.fit(y_train)
+
+# 4. Train Model
 params = {
     "max_depth": 4,
     "random_state": 1
@@ -67,21 +72,26 @@ params = {
 mod_dt = DecisionTreeClassifier(**params)
 mod_dt.fit(X_train, y_train)
 
-# 4. Evaluate Model
+# 5. Evaluate Model
 prediction = mod_dt.predict(X_test)
 accuracy_score = metrics.accuracy_score(prediction, y_test)
 print('The accuracy of the Decision Tree is', "{:.3f}".format(accuracy_score))
 
-# 5. Save and Upload Artifact
+# 6. Save and Upload Artifacts (Model AND Encoder)
 os.makedirs("artifacts", exist_ok=True)
+print("Saving model and label encoder artifacts...")
 joblib.dump(mod_dt, "artifacts/model.joblib")
+joblib.dump(le, "artifacts/label_encoder.joblib") ### FIXED ###: Save the encoder
 
 # Use the Python function for GCS upload
 bucket_name_str = BUCKET_URI.replace("gs://", "")
 model_gcs_path = f"{MODEL_ARTIFACT_DIR}/model.joblib"
-upload_to_gcs(bucket_name_str, "artifacts/model.joblib", model_gcs_path)
+encoder_gcs_path = f"{MODEL_ARTIFACT_DIR}/label_encoder.joblib" ### FIXED ###: Define GCS path for encoder
 
-# 6. Log Experiment with MLflow
+upload_to_gcs(bucket_name_str, "artifacts/model.joblib", model_gcs_path)
+upload_to_gcs(bucket_name_str, "artifacts/label_encoder.joblib", encoder_gcs_path) ### FIXED ###: Upload the encoder
+
+# 7. Log Experiment with MLflow
 with mlflow.start_run() as run:
     mlflow.log_params(params)
     mlflow.log_metric("accuracy", accuracy_score)
@@ -94,6 +104,7 @@ with mlflow.start_run() as run:
         artifact_path="iris_model",
         signature=signature,
         input_example=X_train.head(1),
-        registered_model_name="IRIS-classifier-decisiontrees",
+        # Use the variable to conditionally register the model
+        registered_model_name=REGISTERED_MODEL_NAME if REGISTERED_MODEL_NAME else None, ### FIXED ###
     )
     print(f"MLflow Run completed. Run ID: {run.info.run_id}")

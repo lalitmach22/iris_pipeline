@@ -1,59 +1,81 @@
-# src/plot_metrics.py
-
 import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
+import os
 from sklearn.metrics import (
-    accuracy_score,
     classification_report,
     confusion_matrix,
     ConfusionMatrixDisplay
 )
 from sklearn.model_selection import train_test_split
 
-# === Load data ===
-df = pd.read_csv("data/iris.csv")
-X = df.iloc[:, :-1]
-y = df.iloc[:, -1]
+def plot_and_save_metrics():
+    """
+    Loads artifacts, evaluates the model, and plots and saves
+    the confusion matrix and classification report as a single image.
+    """
+    print("--- Starting to Plot Metrics ---")
 
-# === Load label encoder and model ===
-le = joblib.load("label_encoder.joblib")
-model = joblib.load("model_rf.joblib")
+    # === Load data ===
+    df = pd.read_csv("data/iris.csv")
 
-# === Encode labels and split ===
-y_encoded = le.transform(y)
-_, X_test, _, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
+    # === Load label encoder and model from the correct path ===
+    try:
+        le = joblib.load("artifacts/label_encoder.joblib")
+        model = joblib.load("artifacts/model.joblib")
+        print("Artifacts loaded successfully.")
+    except FileNotFoundError as e:
+        print(f"Error: {e}. Please ensure train.py has run and created artifacts.")
+        return
 
-# === Predict ===
-y_pred = model.predict(X_test)
+    # === Re-create the exact same train/test split as in training ===
+    _, X_test, _, y_test_labels = train_test_split(
+        df.drop(columns=['species']),
+        df['species'],
+        test_size=0.4,
+        random_state=42,
+        stratify=df['species']
+    )
+    print(f"Test set created with {len(X_test)} samples.")
 
-# === Metrics ===
-acc = accuracy_score(y_test, y_pred)
-report_dict = classification_report(y_test, y_pred, target_names=le.classes_, output_dict=True)
-cm = confusion_matrix(y_test, y_pred)
+    # === Predict ===
+    y_pred_labels = model.predict(X_test)
 
-# === Plot ===
-fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+    # === Generate Metrics for Plotting ===
+    report_dict = classification_report(y_test_labels, y_pred_labels, target_names=le.classes_, output_dict=True)
+    cm = confusion_matrix(y_test_labels, y_pred_labels)
+    report_df = pd.DataFrame(report_dict).transpose()
 
-# Confusion Matrix
-ConfusionMatrixDisplay(cm, display_labels=le.classes_).plot(ax=ax[0], cmap="Blues", values_format='d')
-ax[0].set_title("Confusion Matrix")
+    # === Plot ===
+    fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+    fig.suptitle("Model Performance Metrics", fontsize=16)
 
-# Classification Report
-import numpy as np
-import matplotlib.pyplot as plt
+    # Plot 1: Confusion Matrix
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=le.classes_)
+    disp.plot(ax=ax[0], cmap="Blues", values_format='d')
+    ax[0].set_title("Confusion Matrix")
 
-report_df = pd.DataFrame(report_dict).transpose()
-ax[1].axis("off")
-table = ax[1].table(cellText=report_df.round(2).values,
-                    rowLabels=report_df.index,
-                    colLabels=report_df.columns,
-                    cellLoc='center',
-                    loc='center')
-table.scale(1, 1.5)
-ax[1].set_title("Classification Report", pad=20)
+    # Plot 2: Classification Report Table
+    ax[1].axis("off") # Hide axes
+    table = ax[1].table(
+        cellText=report_df.round(2).values,
+        rowLabels=report_df.index,
+        colLabels=report_df.columns,
+        cellLoc='center',
+        loc='center'
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(1.2, 1.2)
+    ax[1].set_title("Classification Report", pad=20)
 
-# Save plot
-plt.tight_layout()
-plt.savefig("metrics.png")
-print("Saved metrics to metrics.png")
+    # === Save plot to artifacts directory ===
+    os.makedirs("artifacts", exist_ok=True)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust layout to make space for suptitle
+    plt.savefig("artifacts/metrics.png")
+    
+    print("Metrics plot saved to artifacts/metrics.png")
+    print("----------------------------\n")
+
+if __name__ == "__main__":
+    plot_and_save_metrics()
