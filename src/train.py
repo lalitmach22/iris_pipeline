@@ -28,7 +28,7 @@ if os.getenv('CI'):
     REGISTERED_MODEL_NAME = ""
 else:
     # Replace with the actual external IP of your GCP instance
-    EXTERNAL_IP = "http://34.63.185.192:8100"  # Replace this dynamically if needed
+    EXTERNAL_IP = "http://35.192.196.52:8100"  # Replace this dynamically if needed
     mlflow_tracking_uri = EXTERNAL_IP
     print(f"Local environment detected. Using remote MLflow tracking URI: {mlflow_tracking_uri}")
     REGISTERED_MODEL_NAME = "IRIS-classifier-decisiontrees"
