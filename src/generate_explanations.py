@@ -16,11 +16,14 @@ def generate_global_explanations():
     try:
         model = joblib.load("artifacts/model.joblib")
         df = pd.read_csv("data/iris.csv")
-        # Ensure 'location' is dropped if it exists
-        X = df.drop(columns=['species', 'location'], errors='ignore')
-        print("Model and data loaded.")
-    except FileNotFoundError as e:
-        print(f"Error: {e}. Please ensure artifacts and data exist.")
+        
+        # --- FIXED: Prepare data dynamically based on model's expected features ---
+        expected_features = model.feature_names_in_
+        X = df[expected_features]
+        
+        print("Model and data loaded successfully.")
+    except (FileNotFoundError, AttributeError, KeyError) as e:
+        print(f"Error loading model or preparing data: {e}")
         return
 
     # Create a SHAP explainer for the tree-based model
@@ -51,12 +54,15 @@ def generate_individual_explanations():
     try:
         model = joblib.load("artifacts/model.joblib")
         df = pd.read_csv("data/iris.csv")
-        # Ensure 'location' is dropped if it exists
-        X = df.drop(columns=['species', 'location'], errors='ignore')
+        
+        # --- FIXED: Prepare data dynamically based on model's expected features ---
+        expected_features = model.feature_names_in_
+        X = df[expected_features]
         y = df['species']
-        print("Model and data loaded.")
-    except FileNotFoundError as e:
-        print(f"Error: {e}. Please ensure artifacts and data exist.")
+
+        print("Model and data loaded successfully.")
+    except (FileNotFoundError, AttributeError, KeyError) as e:
+        print(f"Error loading model or preparing data: {e}")
         return
 
     # Create the same train/test split as in the training script
@@ -86,3 +92,4 @@ def generate_individual_explanations():
 if __name__ == "__main__":
     generate_global_explanations()
     generate_individual_explanations()
+
