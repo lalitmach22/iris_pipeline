@@ -3,7 +3,7 @@ from evidently import DataDefinition
 from evidently import Report
 from evidently.presets import DataDriftPreset, DataSummaryPreset 
 
-import pandas
+import pandas as pd
 import os
 
 
