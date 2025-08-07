@@ -28,14 +28,27 @@ def test_model_accuracy():
     except FileNotFoundError:
         assert False, "model.joblib not found. Run train.py first."
 
+    # === Prepare data dynamically based on model's expected features ===
+    try:
+        expected_features = model.feature_names_in_
+        X = df[expected_features]
+        y = df['species']
+        print("correct features")
+    except AttributeError:
+        # Fallback for older models or different library versions
+        print("Warning: 'feature_names_in_' not found. Falling back to dropping columns.")
+        X = df.drop(columns=['species', 'location'], errors='ignore')
+        y = df['species']
+
+
     # === Re-create the exact same train/test split as in training ===
     # This is critical for a valid test.
     _, X_test, _, y_test = train_test_split(
-        df.drop(columns=['species']),
-        df['species'],
+        X,
+        y,
         test_size=0.4,
         random_state=42,
-        stratify=df['species']
+        stratify=y
     )
 
     # === Predict ===
@@ -51,8 +64,4 @@ if __name__ == "__main__":
     # This allows running tests directly for debugging
     test_artifacts_exist()
     test_model_accuracy()
-    print("All tests passed successfully. ✓")
-    print("You can now run the evaluation and plotting scripts.")
-    print("Run 'python src/evaluate.py' to evaluate the model and 'python src/plot_metrics.py' to plot metrics.")
-    print("Remember to run 'python src/plot_metrics.py' after 'src/evaluate.py' to ensure the metrics are up-to-date.")
-    print("Happy coding! 😊")
+

@@ -19,31 +19,44 @@ def plot_and_save_metrics():
     # === Load data ===
     df = pd.read_csv("data/iris.csv")
 
-    # === Load label encoder and model from the correct path ===
+    # === Load artifacts ===
     try:
-        le = joblib.load("artifacts/label_encoder.joblib")
         model = joblib.load("artifacts/model.joblib")
+        le = joblib.load("artifacts/label_encoder.joblib")
         print("Artifacts loaded successfully.")
     except FileNotFoundError as e:
         print(f"Error: {e}. Please ensure train.py has run and created artifacts.")
         return
 
+    # === Prepare data dynamically based on model's expected features ===
+    try:
+        expected_features = model.feature_names_in_
+        X = df[expected_features]
+        y = df['species']
+    except AttributeError:
+        print("Warning: 'feature_names_in_' not found. Falling back to dropping columns.")
+        X = df.drop(columns=['species', 'location'], errors='ignore')
+        y = df['species']
+    except KeyError as e:
+        print(f"Error: Model was trained on features not present in the new data: {e}")
+        return
+
     # === Re-create the exact same train/test split as in training ===
-    _, X_test, _, y_test_labels = train_test_split(
-        df.drop(columns=['species']),
-        df['species'],
+    _, X_test, _, y_test = train_test_split(
+        X,
+        y,
         test_size=0.4,
         random_state=42,
-        stratify=df['species']
+        stratify=y
     )
     print(f"Test set created with {len(X_test)} samples.")
 
     # === Predict ===
-    y_pred_labels = model.predict(X_test)
+    y_pred = model.predict(X_test)
 
     # === Generate Metrics for Plotting ===
-    report_dict = classification_report(y_test_labels, y_pred_labels, target_names=le.classes_, output_dict=True)
-    cm = confusion_matrix(y_test_labels, y_pred_labels)
+    report_dict = classification_report(y_test, y_pred, target_names=le.classes_, output_dict=True)
+    cm = confusion_matrix(y_test, y_pred)
     report_df = pd.DataFrame(report_dict).transpose()
 
     # === Plot ===
@@ -71,7 +84,7 @@ def plot_and_save_metrics():
 
     # === Save plot to artifacts directory ===
     os.makedirs("artifacts", exist_ok=True)
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust layout to make space for suptitle
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig("artifacts/metrics.png")
     
     print("Metrics plot saved to artifacts/metrics.png")
