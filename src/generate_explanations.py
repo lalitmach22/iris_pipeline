@@ -17,7 +17,7 @@ def generate_global_explanations():
         model = joblib.load("artifacts/model.joblib")
         df = pd.read_csv("data/iris.csv")
         
-        # --- FIXED: Prepare data dynamically based on model's expected features ---
+        # Prepare data dynamically based on model's expected features
         expected_features = model.feature_names_in_
         X = df[expected_features]
         
@@ -45,7 +45,7 @@ def generate_global_explanations():
 
 def generate_individual_explanations():
     """
-    Generates instance-level explanations using KernelExplainer and saves
+    Generates instance-level explanations using TreeExplainer and saves
     interactive force plots as HTML files.
     """
     print("--- Generating Individual SHAP Explanations (Force Plots) ---")
@@ -55,7 +55,7 @@ def generate_individual_explanations():
         model = joblib.load("artifacts/model.joblib")
         df = pd.read_csv("data/iris.csv")
         
-        # --- FIXED: Prepare data dynamically based on model's expected features ---
+        # Prepare data dynamically based on model's expected features
         expected_features = model.feature_names_in_
         X = df[expected_features]
         y = df['species']
@@ -68,9 +68,8 @@ def generate_individual_explanations():
     # Create the same train/test split as in the training script
     X_train, X_test, _, _ = train_test_split(X, y, test_size=0.4, random_state=42, stratify=y)
 
-    # Use KernelExplainer, which is model-agnostic.
-    # We use a sample of the training data for the background distribution for performance.
-    explainer = shap.KernelExplainer(model.predict_proba, shap.sample(X_train, 50))
+    # --- FIXED: Use TreeExplainer for consistency and efficiency ---
+    explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
 
     # 1. Save a force plot for a single prediction (e.g., the first test instance)
@@ -92,4 +91,3 @@ def generate_individual_explanations():
 if __name__ == "__main__":
     generate_global_explanations()
     generate_individual_explanations()
-
