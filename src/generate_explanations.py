@@ -42,3 +42,8 @@ shap.summary_plot(shap_values, X_train)
 explainer = shap.KernelExplainer(mod_dt.predict_proba, X_train)
 shap_values = explainer.shap_values(X_test)
 shap.force_plot(explainer.expected_value[0], shap_values[..., 0], X_test)
+# Create force plot
+force_plot = shap.force_plot(explainer.expected_value[0], shap_values[0], X_test.iloc[0])
+
+# Save force plot to HTML
+shap.save_html("artifacts/shap_force_plot.html", force_plot)
