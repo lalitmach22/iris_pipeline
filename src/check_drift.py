@@ -39,6 +39,6 @@ my_eval
 if not os.path.exists("artifacts"):
     os.makedirs("artifacts")
 
-report.save("artifacts/drift_report.html")
+report.save_html("artifacts/drift_report.html")
 print("Drift report saved to artifacts/drift_report.html")
 print("Drift analysis completed successfully. ✓")
