@@ -68,21 +68,35 @@ def generate_individual_explanations():
     # Create the same train/test split as in the training script
     X_train, X_test, _, _ = train_test_split(X, y, test_size=0.4, random_state=42, stratify=y)
 
-    # --- FIXED: Use TreeExplainer for consistency and efficiency ---
+    # Use TreeExplainer for consistency and efficiency
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
 
     # 1. Save a force plot for a single prediction (e.g., the first test instance)
     print("Generating and saving force plot for a single prediction...")
     # We explain the prediction for the first class ('setosa')
-    p = shap.force_plot(explainer.expected_value[0], shap_values[0][0,:], X_test.iloc[0,:], matplotlib=False)
+    # FIXED: Explicitly pass feature values and names
+    p = shap.force_plot(
+        explainer.expected_value[0], 
+        shap_values[0][0,:], 
+        X_test.iloc[0,:].values, 
+        feature_names=X_test.columns.tolist(),
+        matplotlib=False
+    )
     shap.save_html("artifacts/shap_force_plot_single.html", p)
     print("Single instance force plot saved to artifacts/shap_force_plot_single.html")
 
     # 2. Save a force plot for all test predictions (stacked)
     print("Generating and saving force plot for all test predictions...")
     # We explain the predictions for the second class ('versicolor')
-    p_all = shap.force_plot(explainer.expected_value[1], shap_values[1], X_test, matplotlib=False)
+    # FIXED: Explicitly pass feature values and names for robustness
+    p_all = shap.force_plot(
+        explainer.expected_value[1], 
+        shap_values[1], 
+        X_test.values,
+        feature_names=X_test.columns.tolist(),
+        matplotlib=False
+    )
     shap.save_html("artifacts/shap_force_plot_all.html", p_all)
     print("Stacked force plot for all instances saved to artifacts/shap_force_plot_all.html")
     print("---------------------------------------------------------------------\n")
