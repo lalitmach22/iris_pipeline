@@ -12,3 +12,7 @@ mlflow
 google-cloud-aiplatform
 google-cloud-storage
 dvc
+# Responsible AI & Monitoring
+shap
+fairlearn
+evidently
