@@ -5,9 +5,7 @@ from evidently.presets import DataDriftPreset, DataSummaryPreset
 
 import pandas
 import os
-import os
-from evidently.report import Report
-from evidently.metric_preset import DataDriftPreset, DataSummaryPreset
+
 
 def generate_drift_report(reference_path, output_dir="artifacts"):
     """
