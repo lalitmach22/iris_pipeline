@@ -1,3 +1,4 @@
+ipython
 scikit-learn
 joblib
 pytest
