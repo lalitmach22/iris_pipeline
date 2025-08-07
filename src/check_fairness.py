@@ -23,7 +23,7 @@ def check_model_fairness():
 
         # Get features the model was trained on
         expected_features = getattr(
-            model, 'feature_names_in_', 
+            model, 'feature_names_in_',
             df.drop(columns=['species', 'location']).columns
         )
 
@@ -60,11 +60,15 @@ def check_model_fairness():
     print("\n📏 Calculating Demographic Parity Difference per class...")
     for cls in model.classes_:
         metric_name = f"demographic_parity_difference_{cls}"
+
+        # Manually create binary arrays for compatibility
+        y_true_binary = (y_true == cls)
+        y_pred_binary = (y_pred == cls)
+
         dpd = demographic_parity_difference(
-            y_true,
-            y_pred,
-            sensitive_features=sensitive_feature,
-            positive_label=cls
+            y_true_binary,
+            y_pred_binary,
+            sensitive_features=sensitive_feature
         )
         fairness_report[metric_name] = dpd
 
