@@ -7,8 +7,7 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
     f1_score,
-    classification_report,
-    confusion_matrix
+    classification_report
 )
 from sklearn.model_selection import train_test_split
 
@@ -20,40 +19,53 @@ def evaluate_model():
     print("--- Starting Model Evaluation ---")
 
     # === Load data ===
-    # This must be the same dataset used in training
     df = pd.read_csv("data/iris.csv")
 
-    # === Load label encoder and model from the correct path ===
+    # === Load artifacts ===
     try:
-        le = joblib.load("artifacts/label_encoder.joblib")
         model = joblib.load("artifacts/model.joblib")
-        print("Artifacts loaded successfully.")
+        print("Model artifact loaded successfully.")
     except FileNotFoundError as e:
         print(f"Error: {e}. Please ensure train.py has run and created artifacts.")
         return
 
+    # === Prepare data dynamically based on model's expected features ===
+    # This is the robust way to avoid hardcoding column names.
+    try:
+        expected_features = model.feature_names_in_
+        X = df[expected_features]
+        y = df['species']
+    except AttributeError:
+        # Fallback for older scikit-learn versions or models without this attribute
+        print("Warning: 'feature_names_in_' not found. Falling back to dropping columns.")
+        X = df.drop(columns=['species', 'location'], errors='ignore')
+        y = df['species']
+    except KeyError as e:
+        print(f"Error: Model was trained on features not present in the new data: {e}")
+        return
+
+
     # === Re-create the exact same train/test split as in training ===
-    # This is critical for correct evaluation.
-    _, X_test, _, y_test_labels = train_test_split(
-        df.drop(columns=['species']),
-        df['species'],
+    _, X_test, _, y_test = train_test_split(
+        X,
+        y,
         test_size=0.4,
         random_state=42,
-        stratify=df['species']
+        stratify=y
     )
     print(f"Test set created with {len(X_test)} samples.")
 
     # === Predict ===
-    y_pred_labels = model.predict(X_test)
+    # X_test now has the correct features, matching what the model was trained on.
+    y_pred = model.predict(X_test)
 
     # === Compute Metrics ===
-    accuracy = accuracy_score(y_test_labels, y_pred_labels)
-    precision = precision_score(y_test_labels, y_pred_labels, average="macro")
-    recall = recall_score(y_test_labels, y_pred_labels, average="macro")
-    f1 = f1_score(y_test_labels, y_pred_labels, average="macro")
-    report = classification_report(y_test_labels, y_pred_labels, target_names=le.classes_)
-
-    # === Save metrics to JSON in the artifacts directory ===
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, average="macro")
+    recall = recall_score(y_test, y_pred, average="macro")
+    f1 = f1_score(y_test, y_pred, average="macro")
+    
+    # === Save metrics to JSON ===
     metrics_data = {
         "accuracy": accuracy,
         "precision": precision,
@@ -66,13 +78,7 @@ def evaluate_model():
         json.dump(metrics_data, f, indent=4)
     
     print("Metrics saved to artifacts/metrics.json")
-
-    # === Print reports for logs ===
-    print("\n--- Evaluation Complete ---")
-    print(json.dumps(metrics_data, indent=2))
-    print("\n--- Classification Report ---\n")
-    print(report)
-    print("---------------------------\n")
+    print("--- Evaluation Complete ---\n")
 
 
 if __name__ == "__main__":
